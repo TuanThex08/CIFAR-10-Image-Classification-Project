@@ -30,7 +30,7 @@ variable "app_port" {
 variable "github_repo_url" {
   description = "GitHub repository URL to clone"
   type        = string
-  default     = "https://github.com/tuanthex/CIFAR-10-Image-Classification-Project.git"
+  default     = "https://github.com/TuanThex08/CIFAR-10-Image-Classification-Project"
 }
 
 variable "project_name" {
