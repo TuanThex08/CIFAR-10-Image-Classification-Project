@@ -18,13 +18,21 @@ def set_seed(seed):
 
 
 def get_device():
-    """Get device (GPU or CPU)"""
-    if torch.cuda.is_available() and config.DEVICE == "cuda":
-        device = torch.device("cuda")
-        print(f"Using GPU: {torch.cuda.get_device_name(0)}")
-    else:
-        device = torch.device("cpu")
-        print("Using CPU")
+    """Return the configured device, falling back to CPU when CUDA is unavailable."""
+    requested_device = str(config.DEVICE).lower()
+
+    if requested_device.startswith("cuda"):
+        if torch.cuda.is_available():
+            device = torch.device(config.DEVICE)
+            print(f"Using GPU: {torch.cuda.get_device_name(device.index or 0)}")
+            return device
+
+        # A CPU-only PyTorch build or a missing/incompatible NVIDIA driver
+        # should not prevent inference in the Streamlit app.
+        print("CUDA is unavailable; falling back to CPU.")
+
+    device = torch.device("cpu")
+    print("Using CPU")
     return device
 
 
@@ -106,8 +114,12 @@ class AverageMeter:
 
 
 def accuracy(output, target, topk=(1,)):
-    """Calculate top-k accuracy"""
+    """Calculate top-k accuracy on CPU to avoid fragile CUDA top-k kernels."""
     with torch.no_grad():
+        # CIFAR-10 outputs are tiny (batch x 10), so this transfer is cheap
+        # and keeps metric calculation independent from CUDA kernel state.
+        output = output.detach().float().cpu()
+        target = target.detach().cpu()
         maxk = max(topk)
         batch_size = target.size(0)
         

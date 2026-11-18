@@ -21,11 +21,12 @@ class Config:
     IMAGE_SIZE: int = 32
     
     # Training parameters
-    BATCH_SIZE: int = 64
+    # RTX 3050 Laptop (4 GB VRAM): keep this conservative when other GPU apps run.
+    BATCH_SIZE: int = 16
     LEARNING_RATE: float = 0.1
     MOMENTUM: float = 0.9
     WEIGHT_DECAY: float = 5e-4
-    NUM_EPOCHS: int = 5
+    NUM_EPOCHS: int = 200
     WARMUP_EPOCHS: int = 1
     
     # Optimizer & Scheduler
@@ -34,10 +35,11 @@ class Config:
     GAMMA: float = 0.1
     
     # Training setup
-    DEVICE: str = "cpu"  # "cuda" or "cpu"
+    DEVICE: str = "cuda"  # "cuda" or "cpu"
+    AMP_ENABLED: bool = True  # Mixed precision reduces GPU memory usage
     SEED: int = 42
     NUM_WORKERS: int = 0
-    PIN_MEMORY: bool = False
+    PIN_MEMORY: bool = True
     
     # Data augmentation
     AUGMENTATION_ENABLED: bool = False

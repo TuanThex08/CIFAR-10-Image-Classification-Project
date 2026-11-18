@@ -21,6 +21,11 @@ from src.utils import set_seed, get_device, load_model, count_parameters
 
 def train(args):
     """Training pipeline"""
+
+    # Apply command-line training overrides before creating the data/model pipeline.
+    config.BATCH_SIZE = args.batch_size
+    config.NUM_EPOCHS = args.epochs
+    config.LEARNING_RATE = args.lr
     
     # Set seeds for reproducibility
     set_seed(config.SEED)

@@ -110,7 +110,14 @@ class ResNet(nn.Module):
         
         x = self.avg_pool(x)
         x = x.view(x.size(0), -1)
-        x = self.fc(x)
+
+        # Keep the small classification head in FP32. Some Windows/cuBLAS
+        # combinations reject FP16 inputs for this 512 -> 10 operation.
+        if x.is_cuda:
+            with torch.autocast(device_type="cuda", enabled=False):
+                x = self.fc(x.float())
+        else:
+            x = self.fc(x)
         
         return x
 

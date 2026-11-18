@@ -17,6 +17,7 @@ class Trainer:
     def __init__(self, model, device):
         self.model = model
         self.device = device
+        self.amp_enabled = self.device.type == "cuda" and config.AMP_ENABLED
         
         # Move model to device
         self.model.to(device)
@@ -44,6 +45,9 @@ class Trainer:
         
         self.best_acc = 0.0
         self.patience_counter = 0
+
+        if self.amp_enabled:
+            print("Mixed precision (AMP): enabled")
     
     def _get_scheduler(self):
         """Get learning rate scheduler"""
@@ -69,12 +73,18 @@ class Trainer:
         for batch_idx, (inputs, targets) in enumerate(train_loader):
             inputs, targets = inputs.to(self.device), targets.to(self.device)
             
-            # Forward pass
-            outputs = self.model(inputs)
-            loss = self.criterion(outputs, targets)
-            
+            # Forward pass with mixed precision on CUDA.
+            with torch.autocast(
+                device_type=self.device.type,
+                dtype=torch.float16,
+                enabled=self.amp_enabled,
+            ):
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, targets)
+
             # Backward pass
-            self.optimizer.zero_grad()
+            self.optimizer.zero_grad(set_to_none=True)
+            # Autocast-only AMP keeps memory usage low on small GPUs.
             loss.backward()
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
             self.optimizer.step()
@@ -109,8 +119,13 @@ class Trainer:
             for inputs, targets in val_loader:
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
                 
-                outputs = self.model(inputs)
-                loss = self.criterion(outputs, targets)
+                with torch.autocast(
+                    device_type=self.device.type,
+                    dtype=torch.float16,
+                    enabled=self.amp_enabled,
+                ):
+                    outputs = self.model(inputs)
+                    loss = self.criterion(outputs, targets)
                 
                 acc1, acc5 = accuracy(outputs, targets, topk=(1, 5))
                 
