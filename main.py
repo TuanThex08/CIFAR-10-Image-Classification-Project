@@ -22,6 +22,11 @@ from src.utils import set_seed, get_device, load_model, count_parameters
 def train(args):
     """Training pipeline"""
     
+    # Apply CLI overrides (previously parsed but ignored)
+    config.NUM_EPOCHS = args.epochs
+    config.BATCH_SIZE = args.batch_size
+    config.LEARNING_RATE = args.lr
+
     # Set seeds for reproducibility
     set_seed(config.SEED)
     
@@ -47,10 +52,17 @@ def train(args):
     
     # Create trainer
     trainer = Trainer(model, device)
-    
+
+    start_epoch = 1
+    if args.resume:
+        start_epoch = trainer.load_resume_state()
+        if start_epoch > config.NUM_EPOCHS:
+            print(f"[Resume] Checkpoint already reached epoch {start_epoch - 1} "
+                  f"(>= --epochs {config.NUM_EPOCHS}); nothing left to train")
+
     # Train model
     print("\n[*] Starting training...")
-    history = trainer.train(train_loader, val_loader)
+    history = trainer.train(train_loader, val_loader, start_epoch=start_epoch)
     
     # Evaluate best model
     print("\n[*] Evaluating best model...")
@@ -118,7 +130,9 @@ def main():
                              help='Batch size')
     train_parser.add_argument('--lr', type=float, default=config.LEARNING_RATE,
                              help='Learning rate')
-    
+    train_parser.add_argument('--resume', action='store_true',
+                             help='Continue training from models/checkpoint.pt')
+
     # Evaluation command
     eval_parser = subparsers.add_parser('eval', help='Evaluate the model')
     

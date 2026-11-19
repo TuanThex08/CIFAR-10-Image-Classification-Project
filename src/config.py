@@ -21,11 +21,11 @@ class Config:
     IMAGE_SIZE: int = 32
     
     # Training parameters
-    BATCH_SIZE: int = 64
+    BATCH_SIZE: int = 256
     LEARNING_RATE: float = 0.1
     MOMENTUM: float = 0.9
     WEIGHT_DECAY: float = 5e-4
-    NUM_EPOCHS: int = 5
+    NUM_EPOCHS: int = 200
     WARMUP_EPOCHS: int = 1
     
     # Optimizer & Scheduler
@@ -34,18 +34,23 @@ class Config:
     GAMMA: float = 0.1
     
     # Training setup
-    DEVICE: str = "cpu"  # "cuda" or "cpu"
+    DEVICE: str = "cuda"  # "cuda" or "cpu"
+    # torch.compile: needs `triton-windows` 3.4.x for torch 2.8 (uv pip install "triton-windows<3.5,>=3.4").
+    # Measured on RTX 3050 Laptop: ~8x faster per step; first epoch adds ~60s compile time (cached after).
+    COMPILE_MODEL: bool = True
+    COMPILE_CACHE_DIR: str = r"C:\tic"  # short path: default %TEMP% path breaks Windows MAX_PATH
     SEED: int = 42
-    NUM_WORKERS: int = 0
-    PIN_MEMORY: bool = False
-    
-    # Data augmentation
-    AUGMENTATION_ENABLED: bool = False
+    NUM_WORKERS: int = 4  # each worker commits ~1.6GB on Windows (torch+CUDA re-import)
+    PIN_MEMORY: bool = True
+    GPU_DATA: bool = True  # keep whole CIFAR-10 on GPU (no DataLoader workers / PIL)
+
+    # Data augmentation (on GPU_DATA path: random crop + flip, essentially free)
+    AUGMENTATION_ENABLED: bool = True
     CUTOUT_ENABLED: bool = False
     CUTOUT_SIZE: int = 8
     
     # Model checkpoint
-    CHECKPOINT_INTERVAL: int = 10
+    CHECKPOINT_INTERVAL: int = 1  # every epoch, so --resume loses at most one epoch
     EARLY_STOPPING_PATIENCE: int = 30
     
     # Logging
